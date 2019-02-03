@@ -16,6 +16,14 @@ type Message struct {
 	isValid bool
 }
 
+type ReadState struct {
+	start           time.Time
+	data            uint8
+	previousData    uint8
+	finishedReading bool
+	message         []byte
+}
+
 func GetHandleToIRSource(signalSource SignalSource) chan Message {
 	var feed chan Message
 	go receiveFromSource(signalSource, feed)
@@ -23,39 +31,52 @@ func GetHandleToIRSource(signalSource SignalSource) chan Message {
 }
 
 func receiveFromSource(source SignalSource, feed chan Message) {
-	var start = time.Now()
-	var res uint8
-	previousValue := 1
-	finishedReading := true
-	var message []byte
+	state := ReadState{
+		start:           time.Now(),
+		previousData:    1,
+		finishedReading: true,
+	}
+
 	for {
-		res = source.Read()
-		if res == 0 && previousValue == 1 {
-			if time.Since(start) < time.Duration(time.Millisecond*3) {
-				finishedReading = false
-				if time.Since(start) < time.Duration(time.Millisecond) {
-					message = append(message, 0)
-				} else {
-					message = append(message, 1)
-				}
-			}
-			previousValue = 0
-		} else if res == 1 && previousValue == 0 {
-			start = time.Now()
-			previousValue = 1
-		} else if res == 1 && previousValue == 1 {
-			if !finishedReading && time.Since(start) > time.Duration(time.Millisecond*20) {
-				fmt.Println(message)
-				fmt.Println(len(message))
-				fmt.Println("==============")
-				if len(message) != validMessageLength {
-					// send error
-				} else {
-					// Construct valid byte array and send
-				}
-				finishedReading = true
-				message = []byte{}
-			}
+		state.data = source.Read()
+		if state.data == 0 && state.previousData == 1 {
+			fallingEdge(&state)
+		} else if state.data == 1 && state.previousData == 0 {
+			risingEdge(&state)
+		} else if state.data == 1 && state.previousData == 1 {
+			noEdgeOne(&state)
 		}
+	}
+}
+
+func risingEdge(state *ReadState) {
+	state.start = time.Now()
+	state.previousData = 1
+}
+
+func fallingEdge(state *ReadState) {
+	if time.Since(state.start) < time.Duration(time.Millisecond*3) {
+		state.finishedReading = false
+		if time.Since(state.start) < time.Duration(time.Millisecond) {
+			state.message = append(state.message, 0)
+		} else {
+			state.message = append(state.message, 1)
+		}
+	}
+	state.previousData = 0
+}
+
+func noEdgeOne(state *ReadState) {
+	if !state.finishedReading && time.Since(state.start) > time.Duration(time.Millisecond*20) {
+		fmt.Println(state.message)
+		fmt.Println(len(state.message))
+		fmt.Println("==============")
+		if len(state.message) != validMessageLength {
+			// send error
+		} else {
+			// Construct valid byte array and send
+		}
+		state.finishedReading = true
+		state.message = []byte{}
 	}
 }
