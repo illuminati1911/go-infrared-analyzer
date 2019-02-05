@@ -9,13 +9,18 @@ import (
 )
 
 func main() {
+	// Get signal source from Raspberry Pi GPIO port.
 	err, pin := gpio.Open(23)
 	defer gpio.Close()
 	if err != nil {
 		fmt.Println("Error opening GPIO")
 		os.Exit(1)
 	}
-	for data := range irlink.GetHandleToIRSource(pin) {
+
+	// Get Changhong IR message chunks
+	var irFeed chan irlink.Message
+	go irlink.GetHandleToIRSource(pin, irFeed)
+	for data := range irFeed {
 		fmt.Println(data)
 	}
 }

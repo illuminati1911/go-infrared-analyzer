@@ -24,13 +24,12 @@ type ReadState struct {
 	message         []byte
 }
 
-func GetHandleToIRSource(signalSource SignalSource) chan Message {
-	var feed chan Message
-	go receiveFromSource(signalSource, feed)
+func GetHandleToIRSource(signalSource SignalSource, feed chan Message) chan Message {
+	receiveMessage(signalSource, feed)
 	return feed
 }
 
-func receiveFromSource(source SignalSource, feed chan Message) {
+func receiveMessage(source SignalSource, feed chan Message) {
 	state := ReadState{
 		start:           time.Now(),
 		previousData:    1,
