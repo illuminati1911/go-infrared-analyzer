@@ -1,18 +1,15 @@
-package irlink
+package protocol
 
 import (
-	"fmt"
 	"time"
 )
-
-const validMessageLength int = 120
 
 type SignalSource interface {
 	Read() uint8
 }
 
 type Message struct {
-	data    [15]byte
+	data    string
 	isValid bool
 }
 
@@ -21,15 +18,10 @@ type ReadState struct {
 	data            uint8
 	previousData    uint8
 	finishedReading bool
-	message         []byte
+	message         string
 }
 
-func GetHandleToIRSource(signalSource SignalSource, feed chan Message) chan Message {
-	receiveMessage(signalSource, feed)
-	return feed
-}
-
-func receiveMessage(source SignalSource, feed chan Message) {
+func ReceiveIR(source SignalSource, feed chan Message) {
 	state := ReadState{
 		start:           time.Now(),
 		previousData:    1,
@@ -43,7 +35,7 @@ func receiveMessage(source SignalSource, feed chan Message) {
 		} else if state.data == 1 && state.previousData == 0 {
 			risingEdge(&state)
 		} else if state.data == 1 && state.previousData == 1 {
-			noEdgeOne(&state)
+			noEdgeOne(&state, feed)
 		}
 	}
 }
@@ -57,25 +49,22 @@ func fallingEdge(state *ReadState) {
 	if time.Since(state.start) < time.Duration(time.Millisecond*3) {
 		state.finishedReading = false
 		if time.Since(state.start) < time.Duration(time.Millisecond) {
-			state.message = append(state.message, 0)
+			state.message += "0"
 		} else {
-			state.message = append(state.message, 1)
+			state.message += "1"
 		}
 	}
 	state.previousData = 0
 }
 
-func noEdgeOne(state *ReadState) {
+func noEdgeOne(state *ReadState, feed chan Message) {
 	if !state.finishedReading && time.Since(state.start) > time.Duration(time.Millisecond*20) {
-		fmt.Println(state.message)
-		fmt.Println(len(state.message))
-		fmt.Println("==============")
-		if len(state.message) != validMessageLength {
-			// send error
+		if isValidNECMessage(state.message) {
+			feed <- Message{data: state.message, isValid: false}
 		} else {
-			// Construct valid byte array and send
+			feed <- Message{data: state.message, isValid: true}
 		}
 		state.finishedReading = true
-		state.message = []byte{}
+		state.message = ""
 	}
 }

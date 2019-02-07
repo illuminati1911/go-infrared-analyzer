@@ -4,23 +4,48 @@ import (
 	"fmt"
 	"os"
 
-	gpio "github.com/illuminati1911/go-infrared-analyzer/gpio"
-	irlink "github.com/illuminati1911/go-infrared-analyzer/irlink"
+	"github.com/illuminati1911/go-infrared-analyzer/gpio"
+	ir "github.com/illuminati1911/go-infrared-analyzer/infrared"
+	"github.com/olekukonko/tablewriter"
 )
 
 func main() {
-	// Get signal source from Raspberry Pi GPIO port.
-	err, pin := gpio.Open(23)
+	err, source := gpio.Open(23)
 	defer gpio.Close()
 	if err != nil {
-		fmt.Println("Error opening GPIO")
+		fmt.Println(err)
 		os.Exit(1)
 	}
+	recvFromSource(source)
+}
 
-	// Get Changhong IR message chunks
-	var irFeed chan irlink.Message
-	go irlink.GetHandleToIRSource(pin, irFeed)
-	for data := range irFeed {
-		fmt.Println(data)
+// Receive binary messages from source
+// and parse them to NEC protocol.
+//
+func recvFromSource(source ir.SignalSource) {
+	var irFeed chan ir.Message
+	go ir.ReceiveIR(source, irFeed)
+	for message := range irFeed {
+		if message.isValid {
+			nec, err := ir.GenerateNECMessage(message)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			renderNEC(nec)
+		}
 	}
+}
+
+// Render NEC protocol messages to stdout.
+//
+func renderNEC(nm ir.NECMessage) {
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Binary", "Bytes LSB", "Bytes MSB"})
+
+	for _, v := range nm.ToStringTable() {
+		table.Append(v)
+	}
+	table.SetAlignment(tablewriter.ALIGN_CENTER)
+	table.Render() // Send output
 }

@@ -13,14 +13,12 @@ func (g GPIO) Read() uint8 {
 }
 
 func Open(busNumber uint8) (error, GPIO) {
-	var gpio GPIO
 	err := rpio.Open()
 	if err != nil {
-		return err, gpio
+		return err, GPIO{}
 	}
 	pin := rpio.Pin(busNumber)
 	pin.Mode(rpio.Input)
-	gpio = GPIO{pin: pin}
 	return nil, GPIO{pin: pin}
 }
 
