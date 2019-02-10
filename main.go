@@ -47,5 +47,5 @@ func renderNEC(nm ir.NECMessage) {
 		table.Append(v)
 	}
 	table.SetAlignment(tablewriter.ALIGN_CENTER)
-	table.Render() // Send output
+	table.Render()
 }

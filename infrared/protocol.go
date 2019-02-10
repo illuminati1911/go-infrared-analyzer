@@ -1,3 +1,6 @@
+// Package for NEC infrared protocol constructing from stream
+// and parsing from binary.
+
 package protocol
 
 import (
@@ -7,10 +10,15 @@ import (
 
 const validNECMessageLength int = 120
 
+// NECMessage consisting of 15 bytes.
+// Each byte is transformed to a binary string and
+// appended to the chunks slice.
 type NECMessage struct {
 	chunks []string
 }
 
+// BitOrder type alias to tell whether to parse the binary string to
+// bytes with Least or Most Significant Bit first.
 type BitOrder bool
 
 const (
@@ -18,6 +26,8 @@ const (
 	MSB BitOrder = false
 )
 
+// Bytes returns the byte presentation of each binary string as string.
+// This should be only used for visual demonstration purposes.
 func (m NECMessage) Bytes(b BitOrder) []string {
 	bytes := make([]string, 0)
 	for _, chunk := range m.chunks {
@@ -33,6 +43,8 @@ func (m NECMessage) Bytes(b BitOrder) []string {
 	return bytes
 }
 
+// ToStringTable generates 2D array of the NEC message for simplyfying render in
+// UI or shell.
 func (m NECMessage) ToStringTable() [][]string {
 	var table [][]string
 	lsb := m.Bytes(LSB)
@@ -47,19 +59,21 @@ func (m NECMessage) ToStringTable() [][]string {
 	return table
 }
 
+// GenerateNECMessage returns NECMessage generated from the binary string
+// if possible.
+func GenerateNECMessage(message string) (NECMessage, error) {
+	if !isValidNECMessage(message) {
+		return NECMessage{}, errors.New("cannot parse: Message size invalid")
+	}
+	return NECMessage{chunks: splitStringToChunks(message, 8)}, nil
+}
+
 func reverse(s string) string {
 	rs := ""
 	for i := len(s) - 1; i >= 0; i-- {
 		rs += string(s[i])
 	}
 	return rs
-}
-
-func GenerateNECMessage(message string) (NECMessage, error) {
-	if !isValidNECMessage(message) {
-		return NECMessage{}, errors.New("cannot parse: Message size invalid")
-	}
-	return NECMessage{chunks: splitStringToChunks(message, 8)}, nil
 }
 
 func isValidNECMessage(message string) bool {
