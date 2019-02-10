@@ -8,6 +8,10 @@ func TestIsValidNECMessage(t *testing.T) {
 	if isValidNECMessage("abc") {
 		t.Error("NEC Message validation failure.")
 	}
+
+	if isValidNECMessage("0101010") {
+		t.Error("NEC Message validation failure.")
+	}
 }
 
 func TestGenerateNECMessage(t *testing.T) {
@@ -30,11 +34,4 @@ func TestGenerateNECMessage(t *testing.T) {
 	x := "011010101010111000000000000000000000100000000011000000000000000000000000000000000000000000000000000000000000000000100100"
 	tx, _ := GenerateNECMessage(x)
 	t.Error(tx.Bytes(LSB))
-}
-
-func TestReverse(t *testing.T) {
-	rText := reverse("abc123")
-	if rText != "321cba" {
-		t.Error("String reverse failure")
-	}
 }

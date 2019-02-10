@@ -6,6 +6,8 @@ package protocol
 import (
 	"errors"
 	"strconv"
+
+	"github.com/illuminati1911/go-infrared-analyzer/utils"
 )
 
 const validNECMessageLength int = 120
@@ -33,7 +35,7 @@ func (m NECMessage) Bytes(b BitOrder) []string {
 	for _, chunk := range m.chunks {
 		orderedChunk := chunk
 		if b == LSB {
-			orderedChunk = reverse(orderedChunk)
+			orderedChunk = utils.Reverse(orderedChunk)
 		}
 		n, err := strconv.ParseUint(orderedChunk, 2, 8)
 		if err == nil {
@@ -65,24 +67,9 @@ func GenerateNECMessage(message string) (NECMessage, error) {
 	if !isValidNECMessage(message) {
 		return NECMessage{}, errors.New("cannot parse: Message size invalid")
 	}
-	return NECMessage{chunks: splitStringToChunks(message, 8)}, nil
-}
-
-func reverse(s string) string {
-	rs := ""
-	for i := len(s) - 1; i >= 0; i-- {
-		rs += string(s[i])
-	}
-	return rs
+	return NECMessage{chunks: utils.SplitStringToChunks(message, 8)}, nil
 }
 
 func isValidNECMessage(message string) bool {
 	return len(message) == validNECMessageLength
-}
-
-func splitStringToChunks(s string, size uint) []string {
-	if uint(len(s)) < size {
-		return []string{s}
-	}
-	return append([]string{s[:size]}, splitStringToChunks(s[size:], size)...)
 }
