@@ -23,11 +23,11 @@ func main() {
 // and parse them to NEC protocol.
 //
 func recvFromSource(source ir.SignalSource) {
-	var irFeed chan ir.Message
+	irFeed := make(chan ir.Message)
 	go ir.ReceiveIR(source, irFeed)
 	for message := range irFeed {
-		if message.isValid {
-			nec, err := ir.GenerateNECMessage(message)
+		if message.IsValid {
+			nec, err := ir.GenerateNECMessage(message.Data)
 			if err != nil {
 				fmt.Println(err)
 				continue

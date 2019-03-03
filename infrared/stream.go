@@ -15,8 +15,8 @@ type SignalSource interface {
 // Message is final format of the IR/NEC data received from SignalSource.
 // Will be returned to invoker through received channel.
 type Message struct {
-	data    string
-	isValid bool
+	Data    string
+	IsValid bool
 }
 
 // ReadState holds the state of the message constructing procedure
@@ -50,6 +50,7 @@ func ReceiveIR(source SignalSource, feed chan Message) {
 			noEdgeOne(&state, feed)
 		}
 	}
+	close(feed)
 }
 
 // Time will be recorded for each "Logical 1" received from signal source.
@@ -83,11 +84,7 @@ func fallingEdge(state *ReadState) {
 
 func noEdgeOne(state *ReadState, feed chan Message) {
 	if !state.finishedReading && time.Since(state.start) > time.Duration(time.Millisecond*20) {
-		if isValidNECMessage(state.message) {
-			feed <- Message{data: state.message, isValid: false}
-		} else {
-			feed <- Message{data: state.message, isValid: true}
-		}
+		feed <- Message{Data: state.message, IsValid: isValidNECMessage(state.message)}
 		state.finishedReading = true
 		state.message = ""
 	}
