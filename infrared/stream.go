@@ -29,11 +29,14 @@ type ReadState struct {
 	message         string
 }
 
+var useChangHongFormat bool
+
 // ReceiveIR function is used to initiate IR message construction process.
 // SignalSource will provide logical (binary) changes from the source port/BUS
 // and after each message is constructed, they will be sent through the `feed`
 // channel receiced as second parameter.
-func ReceiveIR(source SignalSource, feed chan Message) {
+func ReceiveIR(source SignalSource, feed chan Message, useCH bool) {
+	useChangHongFormat = useCH
 	state := ReadState{
 		start:           time.Now(),
 		previousData:    1,
@@ -84,7 +87,7 @@ func fallingEdge(state *ReadState) {
 
 func noEdgeOne(state *ReadState, feed chan Message) {
 	if !state.finishedReading && time.Since(state.start) > time.Duration(time.Millisecond*20) {
-		feed <- Message{Data: state.message, IsValid: isValidNECMessage(state.message)}
+		feed <- Message{Data: state.message, IsValid: isValidMessage(state.message, useChangHongFormat)}
 		state.finishedReading = true
 		state.message = ""
 	}

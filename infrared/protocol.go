@@ -10,7 +10,7 @@ import (
 	"github.com/illuminati1911/go-infrared-analyzer/utils"
 )
 
-const validNECMessageLength int = 120
+const validChangHongMessageLength int = 120
 
 // NECMessage consisting of 15 bytes.
 // Each byte is transformed to a binary string and
@@ -63,13 +63,16 @@ func (m NECMessage) ToStringTable() [][]string {
 
 // GenerateNECMessage returns NECMessage generated from the binary string
 // if possible.
-func GenerateNECMessage(message string) (NECMessage, error) {
-	if !isValidNECMessage(message) {
+func GenerateNECMessage(message Message) (NECMessage, error) {
+	if !message.IsValid {
 		return NECMessage{}, errors.New("cannot parse: Message size invalid")
 	}
-	return NECMessage{chunks: utils.SplitStringToChunks(message, 8)}, nil
+	return NECMessage{chunks: utils.SplitStringToChunks(message.Data, 8)}, nil
 }
 
-func isValidNECMessage(message string) bool {
-	return len(message) == validNECMessageLength
+func isValidMessage(message string, useCHFormat bool) bool {
+	if useCHFormat {
+		return len(message) == validChangHongMessageLength
+	}
+	return len(message)%8 == 0
 }
